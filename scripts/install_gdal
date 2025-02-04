@@ -14,11 +14,25 @@ def get_python_version():
 def is_windows():
     return platform.system().lower() == "windows"
 
+def get_architecture():
+    machine = platform.machine().lower()
+    if is_windows():
+        if machine == "amd64" or machine == "x86_64":
+            return "win_amd64"
+        elif machine == "x86" or machine == "i386":
+            return "win32"
+        elif machine == "arm64" or machine == "aarch64":
+            return "win_arm64"
+    return machine
+
 def get_wheel_url(python_version):
-    wheels_json_url = "https://for later.com/gdal-wheels.json"
+    wheels_json_url = "https://github.com/celray/python-gdal-installer/blob/main/gdal-wheels.json"
     response = requests.get(wheels_json_url)
     wheels = response.json()
-    return wheels.get(python_version)
+    
+    arch = get_architecture()
+    version_wheels = wheels.get(python_version, {})
+    return version_wheels.get(arch)
 
 def main():
     if is_windows():
@@ -26,7 +40,7 @@ def main():
         wheel_url = get_wheel_url(python_version)
         
         if not wheel_url:
-            print(f"No GDAL wheel found for Python {python_version}")
+            print(f"No GDAL wheel found for Python {python_version} on {get_architecture()}")
             sys.exit(1)
         
         # Download and install wheel
