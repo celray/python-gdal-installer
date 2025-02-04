@@ -1,0 +1,45 @@
+#!/usr/bin/env python3
+
+import sys
+import os
+import platform
+import json
+import requests
+import subprocess
+from tempfile import NamedTemporaryFile
+
+def get_python_version():
+    return f"{sys.version_info.major}.{sys.version_info.minor}"
+
+def is_windows():
+    return platform.system().lower() == "windows"
+
+def get_wheel_url(python_version):
+    wheels_json_url = "https://for later.com/gdal-wheels.json"
+    response = requests.get(wheels_json_url)
+    wheels = response.json()
+    return wheels.get(python_version)
+
+def main():
+    if is_windows():
+        python_version = get_python_version()
+        wheel_url = get_wheel_url(python_version)
+        
+        if not wheel_url:
+            print(f"No GDAL wheel found for Python {python_version}")
+            sys.exit(1)
+        
+        # Download and install wheel
+        response = requests.get(wheel_url)
+        with NamedTemporaryFile(suffix='.whl', delete=False) as tmp_file:
+            tmp_file.write(response.content)
+            wheel_path = tmp_file.name
+        
+        subprocess.check_call([sys.executable, "-m", "pip", "install", wheel_path])
+        os.unlink(wheel_path)
+    else:
+        # On Unix systems, just use pip
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "GDAL"])
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,1 @@
+You know installing gdal can be annoying especially on windows. this installer uses precompiled wheels to install osgeo/gdal depending on your python version. if you run it on unix, it will just act as a wrapper to your default pip
