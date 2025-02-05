@@ -46,16 +46,21 @@ def main():
         
         print(f"Downloading GDAL wheel for Python {python_version} on {get_architecture()}")
         
+        # Extract filename from URL
+        wheel_filename = wheel_url.split('/')[-1]
+        
         # Download with progress bar
         response = requests.get(wheel_url, stream=True)
         total_size = int(response.headers.get('content-length', 0))
         
-        with NamedTemporaryFile(suffix='.whl', delete=False) as tmp_file:
+        # Use tempfile.gettempdir() to get temp directory and join with original filename
+        wheel_path = os.path.join(os.path.dirname(NamedTemporaryFile().name), wheel_filename)
+        
+        with open(wheel_path, 'wb') as f:
             with tqdm(total=total_size, unit='iB', unit_scale=True) as pbar:
                 for data in response.iter_content(chunk_size=1024):
-                    size = tmp_file.write(data)
+                    size = f.write(data)
                     pbar.update(size)
-            wheel_path = tmp_file.name
 
         # install dependencies
         subprocess.check_call([sys.executable, "-m", "pip", "install", wheel_path])
@@ -63,7 +68,6 @@ def main():
 
         # Clean up
         os.unlink(wheel_path)
-
 
     else:
         # On Unix systems, just use pip but install to user site (but some system require --break-system-packages which is not used here)

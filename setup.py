@@ -7,13 +7,17 @@ long_description = (this_directory / "README.md").read_text()
 
 setup(
     name="gdal-installer",
-    version="0.1.0",
+    version="1.0.2",
     packages=find_packages(),
     install_requires=[
         'requests>=2.25.0',
         'tqdm>=4.65.0',
     ],
-    scripts=['scripts/install-gdal'],
+    entry_points={
+        'console_scripts': [
+            'install-gdal=gdal_installer.cli:main',
+        ],
+    },
     author="Celray James CHAWANDA",
     author_email="celray.chawanda@outlook.com",
     description="A tool to install GDAL wheels on Windows and wrapper for pip on Unix",
@@ -27,5 +31,9 @@ setup(
         "Operating System :: OS Independent",
     ],
     python_requires='>=3.10',
+    package_data={
+        'gdal_installer': ['*'],
+    },
+    include_package_data=True,
     license="MIT",
 )

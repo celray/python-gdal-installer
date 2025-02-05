@@ -1,5 +1,5 @@
-"""GDAL Installer package"""
 
-__version__ = "0.1.0"
+"""GDAL installer package for Python."""
+
+__version__ = "1.0.2"
 __author__  = "Celray James CHAWANDA"
-

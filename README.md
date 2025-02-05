@@ -1,5 +1,7 @@
 You know installing gdal can be annoying especially on windows. That is where "Python GDAL Installer" comes in.
 
+Check the code and contribute: <a href="https://github.com/celray/python-gdal-installer">https://github.com/celray/python-gdal-installer</a>
+
 # Python GDAL Installer
 
 A simple tool to automatically install GDAL Python bindings on Windows and Unix systems. This tool handles the complex process of installing GDAL with proper wheel files for Windows and manages pip installation for Unix systems.
