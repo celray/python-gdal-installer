@@ -26,7 +26,7 @@ def get_architecture():
     return machine
 
 def get_wheel_url(python_version):
-    wheels_json_url = "https://github.com/celray/python-gdal-installer/blob/main/gdal-wheels.json"
+    wheels_json_url = "https://raw.githubusercontent.com/celray/python-gdal-installer/refs/heads/main/gdal-wheels.json"
     response = requests.get(wheels_json_url)
     wheels = response.json()
     
@@ -52,8 +52,8 @@ def main():
         subprocess.check_call([sys.executable, "-m", "pip", "install", wheel_path])
         os.unlink(wheel_path)
     else:
-        # On Unix systems, just use pip
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "GDAL"])
+        # On Unix systems, just use pip but install to user site
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "GDAL", "--user"])
 
 if __name__ == "__main__":
     main()
