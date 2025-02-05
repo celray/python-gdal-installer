@@ -1,4 +1,9 @@
 from setuptools import setup, find_packages
+from pathlib import Path
+
+# Read README content
+this_directory = Path(__file__).parent
+long_description = (this_directory / "README.md").read_text()
 
 setup(
     name="gdal-installer",
@@ -6,12 +11,14 @@ setup(
     packages=find_packages(),
     install_requires=[
         'requests>=2.25.0',
+        'tqdm>=4.65.0',
     ],
-    scripts=['scripts/install_gdal'],
+    scripts=['scripts/install-gdal'],
     author="Celray James CHAWANDA",
     author_email="celray.chawanda@outlook.com",
     description="A tool to install GDAL wheels on Windows and wrapper for pip on Unix",
-    long_description=open('README').read(),
+    long_description=long_description,
+    long_description_content_type="text/markdown",
     keywords="gdal, gis, installer",
     url="https://github.com/celray/python-gdal-installer",
     classifiers=[
@@ -20,4 +27,5 @@ setup(
         "Operating System :: OS Independent",
     ],
     python_requires='>=3.10',
+    license="MIT",
 )
