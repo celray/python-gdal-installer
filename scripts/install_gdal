@@ -7,6 +7,7 @@ import json
 import requests
 import subprocess
 from tempfile import NamedTemporaryFile
+from tqdm import tqdm
 
 def get_python_version():
     return f"{sys.version_info.major}.{sys.version_info.minor}"
@@ -43,16 +44,29 @@ def main():
             print(f"No GDAL wheel found for Python {python_version} on {get_architecture()}")
             sys.exit(1)
         
-        # Download and install wheel
-        response = requests.get(wheel_url)
-        with NamedTemporaryFile(suffix='.whl', delete=False) as tmp_file:
-            tmp_file.write(response.content)
-            wheel_path = tmp_file.name
+        print(f"Downloading GDAL wheel for Python {python_version} on {get_architecture()}")
         
+        # Download with progress bar
+        response = requests.get(wheel_url, stream=True)
+        total_size = int(response.headers.get('content-length', 0))
+        
+        with NamedTemporaryFile(suffix='.whl', delete=False) as tmp_file:
+            with tqdm(total=total_size, unit='iB', unit_scale=True) as pbar:
+                for data in response.iter_content(chunk_size=1024):
+                    size = tmp_file.write(data)
+                    pbar.update(size)
+            wheel_path = tmp_file.name
+
+        # install dependencies
         subprocess.check_call([sys.executable, "-m", "pip", "install", wheel_path])
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "gdal"])
+
+        # Clean up
         os.unlink(wheel_path)
+
+
     else:
-        # On Unix systems, just use pip but install to user site
+        # On Unix systems, just use pip but install to user site (but some system require --break-system-packages which is not used here)
         subprocess.check_call([sys.executable, "-m", "pip", "install", "GDAL", "--user"])
 
 if __name__ == "__main__":
