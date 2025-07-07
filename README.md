@@ -30,7 +30,7 @@ pip install gdal-installer
 
 2. Install python-gdal:
 ```bash
-gdal-installer
+install-gdal
 ```
 
 ## How It Works
