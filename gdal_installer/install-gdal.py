@@ -1,13 +1,19 @@
 #!/usr/bin/env python3
-
-import sys
 import os
 import platform
-import json
-import requests
 import subprocess
+import sys
 from tempfile import NamedTemporaryFile
+
+import requests
+import pandas as pd
+import semver
+from github import Github
 from tqdm import tqdm
+
+
+SRC_REPO = "cgohlke/geospatial-wheels"
+
 
 def get_python_version():
     return f"{sys.version_info.major}.{sys.version_info.minor}"
@@ -26,25 +32,99 @@ def get_architecture():
             return "win_arm64"
     return machine
 
-def get_wheel_url(python_version):
-    wheels_json_url = "https://raw.githubusercontent.com/celray/python-gdal-installer/refs/heads/main/gdal-wheels.json"
-    response = requests.get(wheels_json_url)
-    wheels = response.json()
-    
-    arch = get_architecture()
-    version_wheels = wheels.get(python_version, {})
-    return version_wheels.get(arch)
+def get_wheel_url(python_version, architecture):
+    g = Github()
+    repo = g.get_repo(SRC_REPO)
+    releases = repo.get_releases()
+
+    wheels = list()
+
+    for release in releases:
+        tag = release.tag_name
+        assets = release.assets
+        for asset in assets:
+            whl_url = asset.browser_download_url
+
+            binary_name = asset.name[:-4]  # remove ".whl"
+            binary_name_elms = binary_name.split("-")
+            distribution, version, python_tag, abi_tag, platform = binary_name_elms
+            try:
+                version = semver.Version.parse(version)
+            except ValueError:
+                v = version.split(".")
+                version = semver.Version(
+                    major=int(v[0]),
+                    minor=int(v[1]),
+                    patch=int(v[2]),
+                    prerelease=None,
+                    build=v[3],
+                )
+
+            wheels.append(
+                {
+                    "distribution": distribution,
+                    "version_major": version.major,
+                    "version_minor": version.minor,
+                    "version_patch": version.patch,
+                    "version_build": version.build,
+                    "python_tag": python_tag,
+                    "abi_tag": abi_tag,
+                    "platform": platform,
+                    "whl_url": whl_url,
+                }
+            )
+
+    all_assets = pd.DataFrame().from_records(wheels).convert_dtypes()
+
+    latest_assets = (
+        all_assets.query("distribution == 'gdal'")
+        .sort_values(
+            by=["version_major", "version_minor", "version_patch", "version_build"],
+            ascending=False,
+        )
+        .drop_duplicates(
+            subset=["distribution", "python_tag", "abi_tag", "platform"], keep="first"
+        )
+        .reset_index(drop=True)
+    )
+
+    lookup = dict()
+    for asset in latest_assets.to_dict("records"):
+        if asset["platform"] not in lookup:
+            lookup[asset["platform"]] = dict()
+
+        if asset["abi_tag"] not in lookup[asset["platform"]]:
+            lookup[asset["platform"]][asset["abi_tag"]] = dict()
+
+        if asset["python_tag"] not in lookup[asset["platform"]][asset["abi_tag"]]:
+            lookup[asset["platform"]][asset["abi_tag"]][asset["python_tag"]] = dict()
+
+        if asset["version_build"]:
+            version_build = f"+{asset["version_build"]}"
+        else:
+            version_build = ""
+
+        lookup[asset["platform"]][asset["abi_tag"]][asset["python_tag"]][
+            asset["distribution"]
+        ] = {
+            "version": f"{asset["version_major"]}.{asset["version_minor"]}.{asset["version_patch"]}{version_build}",
+            "url": asset["whl_url"],
+        }
+
+    return lookup[architecture][python_version][python_version]["gdal"]["url"]
+
 
 def main():
     if is_windows():
         python_version = get_python_version()
-        wheel_url = get_wheel_url(python_version)
+        architecture = get_architecture()
+        wheel_url = get_wheel_url(f"cp{python_version.replace(".", "")}", architecture)
         
         if not wheel_url:
-            print(f"No GDAL wheel found for Python {python_version} on {get_architecture()}")
+            print(f"No GDAL wheel found for Python {python_version} on {architecture}")
             sys.exit(1)
         
-        print(f"Downloading GDAL wheel for Python {python_version} on {get_architecture()}")
+        print(f"Downloading GDAL wheel for Python {python_version} on {architecture}")
         
         # Extract filename from URL
         wheel_filename = wheel_url.split('/')[-1]
